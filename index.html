@@ -71,32 +71,88 @@
                 <button id="send-btn" class="btn btn-primary" style="width:45px; height:45px; border-radius:50%; padding:0;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
-        <button id="chat-trigger" class="chat-trigger"><i class="fa-solid fa-robot"></i></button>
+        <button id="chat-trigger" class="chat-trigger" style="display: flex; align-items: center; justify-content: center; overflow: hidden;"><i class="fa-solid fa-robot" style="pointer-events: none;"></i></button>
     </div>
 
     <script>
-        const chatTrigger = document.getElementById('chat-trigger'), chatWindow = document.getElementById('chat-window'), closeChat = document.getElementById('close-chat'), clearChat = document.getElementById('clear-chat'), chatBody = document.getElementById('chat-body'), chatInput = document.getElementById('chat-input'), sendBtn = document.getElementById('send-btn');
-        chatTrigger.addEventListener('click', () => chatWindow.classList.toggle('closed'));
-        closeChat.addEventListener('click', () => chatWindow.classList.add('closed'));
-        clearChat.addEventListener('click', () => { if(confirm("Clear chat?")) chatBody.innerHTML = '<div class="ai-msg"><p style="background:rgba(255,255,255,0.05); padding:0.75rem 1rem; border-radius:12px; font-size:0.9rem; align-self:flex-start;">Hi! I\\'m Gradient AI. How can I help you today?</p></div>'; });
-        sendBtn.addEventListener('click', () => { const text = chatInput.value.trim(); if (text) handleMessage(text); });
-        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { const text = chatInput.value.trim(); if (text) handleMessage(text); } });
+        const chatValues = {
+            trigger: document.getElementById('chat-trigger'),
+            window: document.getElementById('chat-window'),
+            close: document.getElementById('close-chat'),
+            clear: document.getElementById('clear-chat'),
+            body: document.getElementById('chat-body'),
+            input: document.getElementById('chat-input'),
+            send: document.getElementById('send-btn')
+        };
+        
+        const initialResponse = '<div class="ai-msg"><div style="background:rgba(255,255,255,0.05); padding:0.75rem 1rem; border-radius:12px; font-size:0.9rem; align-self:flex-start;">Hi! How can I help you?</div></div>';
+
+        if (chatValues.trigger) {
+            chatValues.trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chatValues.window.classList.toggle('closed');
+            });
+        }
+        
+        if (chatValues.close) {
+            chatValues.close.addEventListener('click', () => chatValues.window.classList.add('closed'));
+        }
+        
+        if (chatValues.clear) {
+            chatValues.clear.addEventListener('click', () => {
+                if(confirm("Clear conversation?")) chatValues.body.innerHTML = initialResponse;
+            });
+        }
+
+        if (chatValues.send) {
+            chatValues.send.addEventListener('click', () => {
+                const text = chatValues.input.value.trim();
+                if (text) handleMessage(text);
+            });
+        }
+
+        if (chatValues.input) {
+            chatValues.input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const text = chatValues.input.value.trim();
+                    if (text) handleMessage(text);
+                }
+            });
+        }
         
         async function handleMessage(text) {
-            addMessage(text, 'user-msg'); chatInput.value = ''; const loadId = 'load-' + Date.now(); addMessage('Thinking...', 'ai-msg', loadId);
+            appendMessage(text, 'user-msg');
+            chatValues.input.value = '';
+            const loadingId = 'loading-' + Date.now();
+            appendMessage('Thinking...', 'ai-msg', loadingId);
+            
             try {
-                // Change to your actual deployed worker URL if testing live
-                const url = 'https://cold-leaf-e276.cogniq-bharath.workers.dev/';
-                const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: text}) });
-                const data = await res.json(); document.getElementById(loadId).remove(); addMessage(data.response, 'ai-msg');
-            } catch { document.getElementById(loadId).remove(); addMessage('Error linking to AI. Is your worker deployed?', 'ai-msg'); }
+                const response = await fetch('https://cold-leaf-e276.cogniq-bharath.workers.dev/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: text})
+                });
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+                appendMessage(data.response, 'ai-msg');
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                appendMessage('Error. Is the worker online?', 'ai-msg');
+            }
         }
-        function addMessage(text, type, id) {
-            const div = document.createElement('div'); div.className = type; if(id) div.id = id; div.style.display = 'flex'; div.style.flexDirection = 'column'; div.margin = '0.5rem 0';
+        
+        function appendMessage(text, type, id) {
+            const div = document.createElement('div');
+            div.className = type;
+            if(id) div.id = id;
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.margin = '0.5rem 0';
             const color = type === 'user-msg' ? 'rgba(138, 77, 255, 0.2)' : 'rgba(255,255,255,0.05)';
             const align = type === 'user-msg' ? 'flex-end' : 'flex-start';
-            div.innerHTML = `<p style="background:${color}; padding:0.75rem 1rem; border-radius:12px; font-size:0.9rem; align-self:${align}; max-width:85%;">${text}</p>`;
-            chatBody.appendChild(div); chatBody.scrollTop = chatBody.scrollHeight;
+            div.innerHTML = `<div style="background:${color}; padding:0.75rem 1rem; border-radius:12px; font-size:0.9rem; align-self:${align}; max-width:85%;">${text}</div>`;
+            chatValues.body.appendChild(div);
+            chatValues.body.scrollTop = chatValues.body.scrollHeight;
         }
     </script>
 </body>
