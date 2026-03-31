@@ -17,11 +17,10 @@ export default {
       try {
         const { message } = await request.json();
         const apiKey = env.API_KEY_gradient;
-        const model = "gemma-3-27b-it";
+        const model = "gemini-1.5-flash"; // Faster and more reliable than Gemma for this endpoint
         
-        if (!apiKey) {
-           return new Response(JSON.stringify({ error: "Gemini API Key missing." }), {
-             status: 500,
+        if (!apiKey || apiKey.length < 10) {
+           return new Response(JSON.stringify({ response: "Error: Your API_KEY_gradient is missing or invalid. Please check your Cloudflare secrets." }), {
              headers: { ...corsHeaders, "Content-Type": "application/json" }
            });
         }
@@ -43,14 +42,21 @@ export default {
         });
 
         const data = await response.json();
-        const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+        
+        // Detailed error reporting for the user
+        if (data.error) {
+           return new Response(JSON.stringify({ response: "Gemini API Error: " + data.error.message }), {
+             headers: { ...corsHeaders, "Content-Type": "application/json" }
+           });
+        }
+
+        const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response. Please check your API usage or model settings.";
 
         return new Response(JSON.stringify({ response: aiResponse }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), {
-          status: 500,
+        return new Response(JSON.stringify({ response: "Internal Error: " + e.message }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
