@@ -25,8 +25,8 @@ export default {
            });
         }
 
-        // System Instruction moved into the message for Gemma compatibility
-        const instruction = "System: You are Gradient AI Assistant, a professional AI specialized in school assessments, Question Level Analysis (QLA), and educational reporting. Your goal is to help users understand how Gradient AI transforms school data into insights. Be professional, concise, and helpful.\n\nUser: ";
+        // Human-like, simple instruction for Gemma compatibility
+        const instruction = "System: You are Gradient AI, a friendly and helpful person. Keep your responses very brief and natural—just one or two simple sentences, like a human in a quick chat. Avoid complex explanations and be very casual.\n\nUser: ";
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
@@ -35,8 +35,8 @@ export default {
           body: JSON.stringify({
             contents: [{ parts: [{ text: instruction + message }] }],
             generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1024
+              temperature: 0.8, // Slightly higher for more human-like variety
+              maxOutputTokens: 100 // Keep it short
             }
           }),
         });
