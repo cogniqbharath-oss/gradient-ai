@@ -17,7 +17,7 @@ export default {
       try {
         const { message } = await request.json();
         const apiKey = env.API_KEY_gradient;
-        const model = "gemma-3-27b-it"; // Switching back to your requested model
+        const model = "gemma-3-27b-it";
         
         if (!apiKey || apiKey.length < 10) {
            return new Response(JSON.stringify({ response: "Error: Your API_KEY_gradient is missing or invalid. Please check your Cloudflare secrets." }), {
@@ -25,15 +25,15 @@ export default {
            });
         }
 
+        // System Instruction moved into the message for Gemma compatibility
+        const instruction = "System: You are Gradient AI Assistant, a professional AI specialized in school assessments, Question Level Analysis (QLA), and educational reporting. Your goal is to help users understand how Gradient AI transforms school data into insights. Be professional, concise, and helpful.\n\nUser: ";
+
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: message }] }],
-            system_instruction: {
-              parts: [{ text: "You are Gradient AI Assistant, a professional AI specialized in school assessments, Question Level Analysis (QLA), and educational reporting. Your goal is to help users understand how Gradient AI transforms school data into insights. Be professional, concise, and helpful." }]
-            },
+            contents: [{ parts: [{ text: instruction + message }] }],
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 1024
@@ -43,9 +43,8 @@ export default {
 
         const data = await response.json();
         
-        // Detailed error reporting for troubleshooting
         if (data.error) {
-           return new Response(JSON.stringify({ response: `Gemini API Error (${model}): ` + data.error.message }), {
+           return new Response(JSON.stringify({ response: `Gemini API Error: ` + data.error.message }), {
              headers: { ...corsHeaders, "Content-Type": "application/json" }
            });
         }
@@ -62,9 +61,10 @@ export default {
       }
     }
 
-    // Default response for other methods
-    return new Response(JSON.stringify({ status: "Gradient AI API is active." }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    // Default response for other methods (e.g. GET)
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" }
     });
   },
 };
